@@ -1,5 +1,7 @@
 package com.example.zsgd.controller;
 import com.alibaba.fastjson.JSONObject;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -9,7 +11,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -34,9 +40,9 @@ public class Controller {
         public  String content;
     }
     class MusicNews{
-        public  String name;
-        public  String url;
-        public  int flag;
+        public  String song_name;
+        public  String singer_name;
+        public  String song_link;
     }
     @GetMapping("/getStudentNews")
     public ArrayList<StudentNews> getStudentNews() throws IOException {
@@ -51,11 +57,11 @@ public class Controller {
             title_list.add(element.text());
             href_list.add(link_url+element.select("a").attr("href"));
         }
-//        int size = href_list.size();
-        int size = 5;
-        for(int i = 0; i < href_list.size(); ++i) {
+        int size = href_list.size();
+//        int size = 5;
+        for(int i = 0; i < size; ++i) {
             try {
-                TimeUnit.SECONDS.sleep(1);
+//                TimeUnit.SECONDS.sleep(1);
                 Document doc = Jsoup.connect((String)href_list.get(i)).get();
                 List<Element> html_list2 = doc.getElementsByClass("showb");
                 for (Element element:html_list2){
@@ -85,11 +91,11 @@ public class Controller {
             title_list.add(element.getElementsByClass("title").text());
             href_list.add(link_url+element.select("a").attr("href"));
         }
-//        int size = href_list.size();
-        int size = 5;
+        int size = href_list.size();
+//        int size = 5;
         for(int i = 0; i < size; ++i) {
             try {
-                TimeUnit.SECONDS.sleep(1);
+//                TimeUnit.SECONDS.sleep(1);
                 Document doc = Jsoup.connect((String)href_list.get(i)).get();
                 List<Element> html_list2 = doc.getElementsByClass("doinum");
                 for (Element element:html_list2){
@@ -128,11 +134,11 @@ public class Controller {
                 href_list.add(link_url+element.select("a").attr("href"));
             }
         }
-//        int size = href_list.size();
-        int size = 5;
+        int size = href_list.size();
+//        int size = 5;
         for(int i=0;i<size;i++){
             try {
-                TimeUnit.SECONDS.sleep(1);
+//                TimeUnit.SECONDS.sleep(1);
                 Document doc = Jsoup.connect(href_list.get(i)).get();
                 USSTNews usstNews = new USSTNews();
                 usstNews.url = href_list.get(i);
@@ -147,57 +153,35 @@ public class Controller {
         }
         return jsonObjectArrayList;
     }
-//    @GetMapping("/getMusicNews")
-//    public ArrayList<MusicNews> getMusicNews(@RequestParam("song") @NotNull String song)throws IOException{
-//        ArrayList<MusicNews> jsonObjectArrayList = new ArrayList<>();
-//        Map<String,String> headers = new HashMap<>();
-//        headers.put("user-agent","Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36");
-//        String name = song;
-//
-//        String url = "https://music.taihe.com/search?word=" + name;
-//        Connection c = Jsoup.connect(url);
-//        Connection connection = c.headers(headers);
-//        Document document = connection.get();
-//        String regex = "<a href=\"/song/(.+?)\"";
-//        Pattern pattern = Pattern.compile(regex);
-//        List<String> tsid = new ArrayList<>();
-//        Matcher matcher = pattern.matcher(String.valueOf(document));
-//        String r = "";
-//        MusicNews musicNews = new MusicNews();
-//        musicNews.name = name;
-//        musicNews.url = "null";
-//        musicNews.flag = 0;
-//        while (matcher.find())
-//        {
-//            tsid.add(matcher.group(1));
-//        }
-//        int flag = 0;
-//        for (String str:tsid){
-//            if (flag == 0)
-//                r  = "sign=0dfd10fa6229ead6d2ff7768fde60213&appid=16073360&TSID="+str+"&timestamp=1668686436";
-//            else
-//                r = "sign=994aa548d2643489fad70631a8280ac3&appid=16073360&TSID="+str+"&timestamp=1668780054";
-//            url = "https://music.91q.com/v1/song/tracklink?"+r;
-////           System.out.println(url);
-//            try {
-//                Connection.Response doc =
-//                        Jsoup.connect(url).timeout(4000).userAgent("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/" +
-//                                "537.36 (KHTML, like Gecko) Chrome/75.0." +
-//                                "3770.100 Safari/537.36").ignoreContentType(true).execute();
-//                JSONObject jsonObject = JSONObject.parseObject(doc.body());
-//                JSONObject object = (JSONObject) jsonObject.get("data");
-//                String path = (String) object.get("path");
-//                String real_name = (String) object.get("title");
-//                musicNews.name = real_name;
-//                musicNews.url = path;
-//                musicNews.flag = 1;
-//                break;
-//            }catch (Exception e){
-//                flag = 1;
-//                continue;
-//            }
-//        }
-//        jsonObjectArrayList.add(musicNews);
-//        return jsonObjectArrayList;
-//    }
+    @GetMapping("/getMusicNews")
+    public ArrayList<MusicNews> getMusicNews(@RequestParam("str") @NotNull String str)throws IOException{
+        ArrayList<MusicNews> jsonObjectArrayList;
+        StringBuilder stringBuilder = new StringBuilder();
+        try {
+            //获取assets资源管理器
+            InputStream is = this.getClass().getClassLoader().getResourceAsStream("static/songs.json");
+            InputStreamReader streamReader = new InputStreamReader(is);
+            BufferedReader bf = new BufferedReader(streamReader);
+            String line;
+            while ((line = bf.readLine()) != null) {
+                stringBuilder.append(line);
+            }
+//            System.out.println(streamReader);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Gson gson = new Gson();
+        jsonObjectArrayList = gson.fromJson(String.valueOf(stringBuilder),new TypeToken<ArrayList<MusicNews>>(){}.getType());
+        ArrayList<MusicNews> songArrayList = new ArrayList<>();
+        for(MusicNews music:jsonObjectArrayList){
+            if (music.song_name.equals(str)){
+                songArrayList.add(music);
+                return songArrayList;
+            }
+            else if(music.singer_name.equals(str)){
+                songArrayList.add(music);
+            }
+        }
+        return songArrayList;
+    }
 }
